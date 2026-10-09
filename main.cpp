@@ -20,6 +20,9 @@ int main(int argc, char **argv) {
   std::unordered_map<std::string,
                      std::vector<std::pair<std::string, std::string>>>
       structs_with_states;
+  std::unordered_map<std::string,
+                     std::vector<std::pair<std::string, std::string>>>
+      vars_with_states;
   std::string element;
   while (file >> element) {
     if (element == "state") {
@@ -95,6 +98,19 @@ int main(int argc, char **argv) {
         }
       }
       structs_with_states.insert({struct_name, states});
+    } else if (structs_with_states.contains(element)) {
+      std::string var_name;
+      file >> var_name;
+      if (var_name.back() != ';') {
+        std::cerr << "There is var name without ';'. Aborted\n";
+        return 9;
+      }
+      var_name.erase(var_name.find(';'));
+      if (vars_with_states.contains(var_name)) {
+        std::cerr << "There is var " << var_name << " twice. Aborted\n";
+        return 10;
+      }
+      vars_with_states.insert({var_name, structs_with_states[element]});
     }
   }
 }
