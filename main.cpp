@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -14,8 +15,10 @@ int main(int argc, char **argv) {
     std::cerr << "There is not file " << argv[1] << ". Aborted" << '\n';
     return 2;
   }
-  std::unordered_map<std::string,
-                     std::unordered_map<std::string, std::vector<std::string>>>
+  std::unordered_map<
+      std::string,
+      std::unordered_map<std::string,
+                         std::vector<std::pair<std::string, std::string>>>>
       state_types;
   std::unordered_map<std::string,
                      std::vector<std::pair<std::string, std::string>>>
@@ -33,7 +36,9 @@ int main(int argc, char **argv) {
                   << '\n';
         return 3;
       }
-      std::unordered_map<std::string, std::vector<std::string>> state_type;
+      std::unordered_map<std::string,
+                         std::vector<std::pair<std::string, std::string>>>
+          state_type;
       file >> element;
       if (element != "{") {
         std::cerr << "There is an error in state " << state_type_name
@@ -50,13 +55,32 @@ int main(int argc, char **argv) {
                     << cur_state << ". Aborted\n";
           return 5;
         }
-        std::vector<std::string> functions;
-        while (file >> element) {
-          if (element == "}")
+        std::vector<std::pair<std::string, std::string>> functions;
+        std::string function_name;
+        while (file >> function_name) {
+          if (function_name == "}")
             break;
-          if (element.find('(') != std::string::npos) {
+          if (function_name.find('(') != std::string::npos) {
             element.erase(element.find('('));
-            functions.push_back(element);
+            while (file >> element) {
+              if (element == "->") {
+                file >> element;
+                if (element.back() != ';') {
+                  std::cerr << "There is an error in state " << state_type_name
+                            << ": " << cur_state
+                            << ". Maybe you missed ';'. Aborted\n";
+                  return 6;
+                }
+                element.erase(element.find(';'));
+                break;
+              }
+            }
+            functions.push_back({function_name, element});
+          } else {
+            std::cerr << "There is an error in state " << state_type_name
+                      << ": " << cur_state << ". " << function_name
+                      << " is not function. Aborted\n";
+            return 7;
           }
         }
         state_type.insert({cur_state, functions});
@@ -67,14 +91,14 @@ int main(int argc, char **argv) {
       file >> struct_name;
       if (structs_with_states.contains(struct_name)) {
         std::cerr << "There is struct " << struct_name << " twice. Aborted\n";
-        return 6;
+        return 8;
       }
       std::vector<std::pair<std::string, std::string>> states;
       file >> element;
       if (element != "{") {
         std::cerr << "There is an error in struct " << struct_name
                   << ". Use 'struct StructName { struct_body };'. Aborted\n";
-        return 7;
+        return 9;
       }
       std::string cur_field_type;
       while (file >> cur_field_type) {
@@ -85,8 +109,8 @@ int main(int argc, char **argv) {
           if (element.back() != ';') {
             std::cerr << "There is an error in struct " << struct_name
                       << ", state " << cur_field_type
-                      << ". You missed ';'. Aborted\n";
-            return 8;
+                      << ". Maybe you missed ';'. Aborted\n";
+            return 10;
           }
           element.erase(element.find(";"));
           states.push_back({cur_field_type, element});
@@ -98,19 +122,48 @@ int main(int argc, char **argv) {
         }
       }
       structs_with_states.insert({struct_name, states});
+      // TODO main()
     } else if (structs_with_states.contains(element)) {
       std::string var_name;
       file >> var_name;
       if (var_name.back() != ';') {
         std::cerr << "There is var name without ';'. Aborted\n";
-        return 9;
+        return 11;
       }
       var_name.erase(var_name.find(';'));
       if (vars_with_states.contains(var_name)) {
         std::cerr << "There is var " << var_name << " twice. Aborted\n";
-        return 10;
+        return 12;
       }
       vars_with_states.insert({var_name, structs_with_states[element]});
+    } else {
+      if (element.find('.') == std::string::npos) {
+        // TODO writing
+        continue;
+      }
+      std::string var;
+      var.erase(var.find('.'));
+      if (vars_with_states.contains(var)) {
+        std::string function = element.substr(element.find('.') + 1);
+        if (function.find('(') == std::string::npos) {
+          // TODO writing
+          continue;
+        }
+        function.erase(function.find('('));
+        auto tmp = state_types[vars_with_states[var][0].first]
+                              [vars_with_states[var][0].second];
+        auto it =
+            std::find_if(tmp.begin(), tmp.end(), [function](const auto &pair) {
+              return (pair.first == function);
+            });
+        if (it == tmp.end()) {
+          std::cerr << "You use " << var << "." << function
+                    << "() with wrong state. Aborted\n";
+          return 13;
+        }
+        vars_with_states[var][0].second = it->second;
+        // TODO writing
+      }
     }
   }
 }
