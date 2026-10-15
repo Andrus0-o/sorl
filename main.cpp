@@ -1,4 +1,3 @@
-
 #include <algorithm>
 #include <cstdio>
 #include <fstream>
@@ -98,6 +97,10 @@ int main(int argc, char **argv) {
       if (structs_with_states.contains(struct_name)) {
         std::cerr << "There is struct " << struct_name << " twice. Aborted\n";
         return 8;
+        // Это сотая строчка. Если Вы до сих пор пытаетесь понять этот говнокод,
+        // мне Вас искренне жаль. Код изначально проектировался с мыслью, чтобы
+        // быть максимально нечитабельным. Однако он работает, так что вопросы
+        // только к Вам: зачем Вы это до сих пор читаете?
       }
       std::vector<std::pair<std::string, std::string>> states;
       file >> element;
