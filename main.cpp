@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
           if (function_name == "}")
             break;
           if (function_name.find('(') != std::string::npos) {
-            element.erase(element.find('('));
+            function_name.erase(function_name.find('('));
             while (file >> element) {
               if (element == "->") {
                 file >> element;
@@ -141,8 +141,7 @@ int main(int argc, char **argv) {
         // TODO writing
         continue;
       }
-      std::string var;
-      var.erase(var.find('.'));
+      std::string var = element.substr(0, element.find('.'));
       if (vars_with_states.contains(var)) {
         std::string function = element.substr(element.find('.') + 1);
         if (function.find('(') == std::string::npos) {
