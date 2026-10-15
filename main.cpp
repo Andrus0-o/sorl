@@ -1,4 +1,6 @@
+
 #include <algorithm>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -26,9 +28,13 @@ int main(int argc, char **argv) {
   std::unordered_map<std::string,
                      std::vector<std::pair<std::string, std::string>>>
       vars_with_states;
+  std::string code;
   std::string element;
   while (file >> element) {
-    if (element == "state") {
+    if (element == "#include") {
+      file >> element;
+      code += "#include " + element + "\n";
+    } else if (element == "state") {
       std::string state_type_name;
       file >> state_type_name;
       if (state_types.contains(state_type_name)) {
@@ -100,6 +106,7 @@ int main(int argc, char **argv) {
                   << ". Use 'struct StructName { struct_body };'. Aborted\n";
         return 9;
       }
+      code += "typedef struct " + struct_name + " { ";
       std::string cur_field_type;
       while (file >> cur_field_type) {
         if (cur_field_type == "};")
@@ -115,15 +122,19 @@ int main(int argc, char **argv) {
           element.erase(element.find(";"));
           states.push_back({cur_field_type, element});
         } else {
+          code += cur_field_type + " ";
           while (file >> element) {
+            code += element + " ";
             if (element.back() == ';')
               break;
           }
         }
       }
+      code += "} " + struct_name + "; ";
       structs_with_states.insert({struct_name, states});
       // TODO main()
     } else if (structs_with_states.contains(element)) {
+      const std::string struct_name = element;
       std::string var_name;
       file >> var_name;
       if (var_name.back() != ';') {
@@ -135,17 +146,19 @@ int main(int argc, char **argv) {
         std::cerr << "There is var " << var_name << " twice. Aborted\n";
         return 12;
       }
-      vars_with_states.insert({var_name, structs_with_states[element]});
+      if (!structs_with_states[struct_name].empty())
+        vars_with_states.insert({var_name, structs_with_states[struct_name]});
+      code += struct_name + " " + var_name + "; ";
     } else {
       if (element.find('.') == std::string::npos) {
-        // TODO writing
+        code += element + " ";
         continue;
       }
       std::string var = element.substr(0, element.find('.'));
       if (vars_with_states.contains(var)) {
         std::string function = element.substr(element.find('.') + 1);
         if (function.find('(') == std::string::npos) {
-          // TODO writing
+          code += element + " ";
           continue;
         }
         function.erase(function.find('('));
@@ -161,8 +174,26 @@ int main(int argc, char **argv) {
           return 13;
         }
         vars_with_states[var][0].second = it->second;
-        // TODO writing
+        const std::string args = element.substr(element.find('(') + 1);
+        code += function + "(&" + var;
+        if (args.empty() || args[0] != ')')
+          code += ", ";
+        code += args + " ";
+      } else {
+        code += element + " ";
       }
     }
+  }
+
+  FILE *compiler = popen("gcc -x c - -o program", "w");
+  if (compiler == nullptr) {
+    std::cerr << "Cannot start GCC. Aborted\n";
+    return 14;
+  }
+  const size_t written = std::fwrite(code.data(), 1, code.size(), compiler);
+  const int status = pclose(compiler);
+  if (written != code.size() || status != 0) {
+    std::cerr << "C compilation failed. Aborted\n";
+    return 15;
   }
 }
