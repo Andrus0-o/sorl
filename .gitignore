@@ -1,3 +1,7 @@
+.gitignore
+.clangd
+note.txt
+compiler
 build/
 program
 a.out
