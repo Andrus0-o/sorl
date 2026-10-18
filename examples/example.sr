@@ -1,31 +1,60 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 state FileState {
   Closed {
-    open() -> Opened;
+    open(const char* path) -> Opened;
   }
   Opened {
     close() -> Closed;
+    read_char() -> Opened;
   }
 };
 
 struct File {
   FileState Closed;
+  FILE* handle;
   int x;
 };
 
-void open(File* f) {
+void open(File* f, const char* path) {
+  f->handle = fopen(path, "r");
+
+  if (f->handle == NULL) {
+    perror("fopen");
+    exit(EXIT_FAILURE);
+  }
+
   f->x = 10;
 }
 
 void close(File* f) {
+  if (fclose(f->handle) != 0) {
+    perror("fclose");
+    exit(EXIT_FAILURE);
+  }
+
+  f->handle = NULL;
   f->x = 20;
+}
+
+int read_char(File* f) {
+  return fgetc(f->handle);
 }
 
 int main() {
   File file;
-  file.open();
+
+  file.open("example.txt");
+
+  int ch;
+  while ((ch = file.read_char()) != EOF) {
+    putchar(ch);
+  }
+
   file.close();
-  printf("%d\n", file.x);
+
+  printf("\n%d\n", file.x);
   return 0;
 }
+
