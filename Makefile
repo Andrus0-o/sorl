@@ -21,6 +21,7 @@ test: $(TARGET)
 	./$(TARGET) examples/example.sr
 	./program
 	! ./$(TARGET) examples/bad_example.sr
+	rm -f program
 
 clean:
 	rm -rf build program
