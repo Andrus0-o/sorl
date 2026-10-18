@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  FILE *compiler = popen("gcc -x c - -o program", "w");
+  FILE *compiler = popen("mkdir -p build && gcc -x c - -o build/program", "w");
   if (compiler == nullptr) {
     std::cerr << "Cannot start GCC. Aborted\n";
     return 14;
