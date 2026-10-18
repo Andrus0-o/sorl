@@ -14,18 +14,14 @@ state FileState {
 struct File {
   FileState Closed;
   FILE* handle;
-  int x;
 };
 
 void open(File* f, const char* path) {
   f->handle = fopen(path, "r");
-
   if (f->handle == NULL) {
     perror("fopen");
     exit(EXIT_FAILURE);
   }
-
-  f->x = 10;
 }
 
 void close(File* f) {
@@ -33,9 +29,7 @@ void close(File* f) {
     perror("fclose");
     exit(EXIT_FAILURE);
   }
-
   f->handle = NULL;
-  f->x = 20;
 }
 
 int read_char(File* f) {
@@ -44,17 +38,11 @@ int read_char(File* f) {
 
 int main() {
   File file;
-
   file.open("example.txt");
-
   int ch;
-  while ((ch = file.read_char()) != EOF) {
+  while ((ch = file.read_char()) != EOF)
     putchar(ch);
-  }
-
   file.close();
-
-  printf("\n%d\n", file.x);
   return 0;
 }
 
